@@ -42,7 +42,7 @@ gh api -X PUT "repos/$OWNER/$REPO/actions/permissions" -f enabled=true
 gh api -X POST "repos/$OWNER/$REPO/pages" -f build_type=workflow
 ```
 
-已存在会返回 409，可以忽略。工作流里的 `configure-pages` 带 `enablement: true`，也能自动开启；但如果部署报 Pages 相关错误，回来手动执行这条。
+已存在会返回 409，可以忽略。**不要依赖工作流自己开通 Pages**：`GITHUB_TOKEN` 没有创建 Pages 站点的权限，没启用就运行会以 “先打开 …/settings/pages” 的报错失败——这是预期行为，不是配置坏了。
 
 ### 4. 建发布标签
 
@@ -106,6 +106,7 @@ grep -q "页面正文里的某个特征字符串" /tmp/page.html && echo "内容
 | 现象 | 原因与处理 |
 | --- | --- |
 | 完全没有工作流运行 | fork 的 Actions 没开（步骤 2）；或 issue 事件没触发，手动 `gh workflow run deploy-pages.yml --repo "$OWNER/$REPO"` |
+| 运行失败并提示「先打开 …/settings/pages」 | Pages 还没启用，按步骤 3 做完再重跑；如果是在启用 Pages 之前推的代码，这次失败属正常 |
 | 构建日志里全是「跳过 #N … 还没有 publish 标签」 | 标签名与 `PUBLISH_LABEL` 不一致，或 issue 没打标签 |
 | 构建日志里「作者 xxx 不在发布名单内」 | `ISSUE_AUTHOR` 是别人；要放开发布就把它设为空字符串 |
 | 构建成功但访问 404 | Pages 没启用 / 构建源不是 GitHub Actions（步骤 3）；或路径拼错、大小写不符 |

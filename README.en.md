@@ -16,7 +16,13 @@ After the one-time setup, **every new page is just a new issue plus a label** �
 
 1. **Fork this repository.**
 2. **Enable Actions:** workflows do not run in a fresh fork until you click “I understand my workflows, go ahead and enable them” on the Actions tab.
-3. **Enable Pages:** Settings → Pages → Source → **GitHub Actions**. The workflow's `configure-pages` step also tries to enable it; if it fails, do it manually.
+3. **Enable Pages first:** Settings → Pages → Source → **GitHub Actions**. Or from the CLI:
+
+   ```bash
+   gh api -X POST repos/<your-user>/<repo>/pages -f build_type=workflow
+   ```
+
+   Do this before the first run: `GITHUB_TOKEN` cannot create a Pages site, so a run started before Pages exists fails immediately (the failure message contains the command and settings link above — do that and re-run).
 4. **Create a `publish` label:** Settings → Labels → New label, name it `publish` (used for publish approval; set `PUBLISH_LABEL` to an empty string in the workflow to turn approval off).
 5. **Publish your first page:** create an issue titled `hello`, paste `<h1>Hello</h1>` as the body, and add the `publish` label.
 6. Wait ~30 seconds, then open `https://<your-user>.github.io/<repo>/hello/`.

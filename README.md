@@ -16,7 +16,13 @@ Issue Pages 用 GitHub Issues 保存页面源码，用 GitHub Actions 在构建�
 
 1. **Fork 本仓库**，得到你自己的副本。
 2. **打开 Actions**：Fork 出来的仓库默认不会跑工作流，在 Actions 页点一次 “I understand my workflows, go ahead and enable them”。
-3. **启用 Pages**：Settings → Pages → Source 选 **GitHub Actions**。工作流里的 `configure-pages` 也会尝试自动开启，失败时按这步手动开一次。
+3. **先启用 Pages**：Settings → Pages → Source 选 **GitHub Actions**。也可以命令行开：
+
+   ```bash
+   gh api -X POST repos/<你的用户名>/<仓库名>/pages -f build_type=workflow
+   ```
+
+   这一步必须在第一次运行之前做：`GITHUB_TOKEN` 没有创建 Pages 站点的权限，没启用就运行会直接失败（报错里会给出上面这条命令和设置页链接，照着做完重跑即可）。
 4. **建一个 `publish` 标签**：Settings → Labels → New label，名字 `publish`（发布审批用，见下文；不想用审批就把工作流里的 `PUBLISH_LABEL` 设为空字符串）。
 5. **发第一张页面**：新建 Issue，标题写 `hello`，正文粘贴 `<h1>Hello</h1>`，然后给这个 Issue 加上 `publish` 标签。
 6. 等 Actions 跑完（约 30 秒），访问 `https://<你的用户名>.github.io/<仓库名>/hello/`。
