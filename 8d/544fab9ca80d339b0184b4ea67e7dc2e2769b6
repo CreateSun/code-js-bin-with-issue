@@ -1,0 +1,42 @@
+LICENSE
+  s_9167e36f642b69::t_ab601986ca85c7 1-21
+src/style.css
+  s_9167e36f642b69::t_d3fb4003b2b18a 78,80,86
+README.md
+  s_9167e36f642b69::t_a567b4b019d3ac 24
+  s_9167e36f642b69::t_7a6f102e863876 1,3,5,7,9,11,13,15,17-22,26,28-31,33,35,37-40,42,44-49,51,53,55-62,64,66,68-69,71,73,75,77,79-81,83,88,90-92,95,97-100,102,104,106,108,110,112-142,144-146,148,150
+  s_9167e36f642b69::t_d2fef931054198 143
+.github/workflows/deploy-pages.yml
+  s_9167e36f642b69::t_fb50b79941b3f1 26-40
+  s_9167e36f642b69::t_cd28d28f4737de 58-59
+scripts/build.mjs
+  s_9167e36f642b69::t_dc948f07ddc017 24-25
+  s_9167e36f642b69::t_a969061d9beb4e 223,230,236
+src/footer.html
+  s_9167e36f642b69::t_5c8b5f802fbc04 1-5
+src/404.html
+  s_9167e36f642b69::t_7168d9f65437a4 13
+.agents/skills/issue-pages/SKILL.md
+  s_9167e36f642b69::t_9529b4897e13a5 1-90,93-120
+  s_9167e36f642b69::t_f88511b1c428e0 91-92
+README.en.md
+  s_9167e36f642b69::t_dca804b21a3887 24
+  s_9167e36f642b69::t_7faa8d83177bcb 143
+  s_9167e36f642b69::t_6aa8c66e3c2a3a 1-23,25-142,144-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "8d544fab9ca80d339b0184b4ea67e7dc2e2769b6",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
