@@ -21,6 +21,8 @@ const apiBase = (process.env.GITHUB_API_URL || 'https://api.github.com').replace
 const token = process.env.GITHUB_TOKEN || '';
 const repo = process.env.GITHUB_REPOSITORY || detectRepo();
 const basePath = toBasePath(process.env.BASE_PATH || '/');
+// 站点标题：默认取仓库名，这样 fork 出去自动是对方自己的名字；部署时可用 SITE_NAME 指定品牌名。
+const siteName = (process.env.SITE_NAME || repo.split('/')[1] || 'Issue Pages').trim();
 // 默认只发布仓库 owner 自己的 issue，避免任何人都能往站点上写内容；设成空字符串则不限作者。
 const authorFilter = (process.env.ISSUE_AUTHOR ?? repo.split('/')[0]).trim().toLowerCase();
 // 发布审批：名单内的 issue 还要打上这个标签才会上线；设成空字符串则等于没有审批。
@@ -218,20 +220,20 @@ function renderIndex(pages, basePath) {
     })
     .join('\n');
 
-  const empty = `  <p class="muted">还没有 issue。新建一个 issue，标题就是访问路径，正文就是页面内容，打上 <code>publish</code> 标签后上线。</p>`;
+  const empty = `  <p class="muted">📭 还没有 issue。新建一个 issue，标题就是访问路径，正文就是页面内容，打上 <code>publish</code> 标签后上线。</p>`;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>code-js-bin-with-issue</title>
+<title>${escapeHtml(siteName)}</title>
 <style>
 ${style}
 </style>
 </head>
 <body>
-<h1>code-js-bin-with-issue</h1>
+<h1>📄 ${escapeHtml(siteName)}</h1>
 <p class="muted">issue 标题即路径（<code>${escapeHtml(basePath)}{标题}/</code>），正文即页面内容。</p>
 <hr>
 ${pages.length ? `  <ul class="post-list">\n${items}\n  </ul>` : empty}

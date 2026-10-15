@@ -23,11 +23,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # GITHUB_TOKEN 没有"创建 Pages 站点"的权限（configure-pages 的 enablement 会以
+      # "Resource not accessible by integration" 失败），所以先自己查一次，把看不懂的报错变成可操作的提示。
+      - name: Check GitHub Pages is enabled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" > /dev/null 2>&1; then
+            echo "Pages 已启用。"
+          elif gh api "repos/${GITHUB_REPOSITORY}/pages" 2>&1 | grep -q "Not Found"; then
+            echo "::error title=Pages 还没启用::先打开 https://github.com/${GITHUB_REPOSITORY}/settings/pages 把 Source 设为 GitHub Actions（或运行 gh api -X POST repos/${GITHUB_REPOSITORY}/pages -f build_type=workflow），然后重跑本工作流。"
+            exit 1
+          else
+            echo "::warning::无法确认 Pages 状态，继续尝试部署。"
+          fi
+
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v6
-        with:
-          enablement: true
 
       - uses: actions/setup-node@v7
         with:
@@ -42,6 +55,8 @@ jobs:
           ISSUE_AUTHOR: ${{ github.repository_owner }}
           # 发布审批：名单内的 issue 还要打上这个标签才会上线；设为空字符串就等于关掉审批
           PUBLISH_LABEL: publish
+          # 站点标题（首页大标题和 <title>）；不设则用仓库名
+          SITE_NAME: Issue Pages
         run: node scripts/build.mjs
 
       - uses: actions/upload-pages-artifact@v5

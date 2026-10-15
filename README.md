@@ -1,123 +1,150 @@
-# code-js-bin-with-issue
+# Issue Pages：把 HTML / JavaScript 发布成可分享的网页
 
-用 GitHub Issue 当编辑器、用 GitHub Pages 当托管的极简「代码 bin」：
+**Publish HTML & JavaScript to your own GitHub Pages URL.** 把代码粘进一个 Issue，打上 `publish` 标签，就得到一条能直接发给任何人的网址——不用买服务器，也不用配 CI。
 
-- **issue 标题 = 访问路径**，例如标题 `abcd` → `/abcd/`
-- **issue 正文 = 页面内容本身**，构建时（SSG）写进该页面的 HTML，运行时不再请求任何数据
+[English](README.en.md) · 在线示例：[🔢 计算器](https://createsun.github.io/code-js-bin-with-issue/calculator/) · [🧩 JSON 格式化](https://createsun.github.io/code-js-bin-with-issue/json-formatter/) · [⏱ 2 秒后跳转](https://createsun.github.io/code-js-bin-with-issue/redirect-baidu/)
 
-站点地址：https://createsun.github.io/code-js-bin-with-issue/
+---
 
-## 怎么用
+## 这是什么
 
-1. 在仓库里新建 issue，标题写英文路径名（如 `abcd`）。
-2. 正文写页面内容。可以是 HTML：
+Issue Pages 用 GitHub Issues 保存页面源码，用 GitHub Actions 在构建时把它们编译成静态 HTML，再发布到你自己的 GitHub Pages 地址。适合分享 AI 生成的单页应用、JavaScript 小工具、交互演示和原型。
 
-   ```html
-   <h1>hello</h1>
-   <button onclick="document.body.style.background='#ffe'">点我</button>
-   ```
+首次配置完成后，**每新增一个页面只要创建一个 Issue 并加个标签**，不需要再动仓库。
 
-   也可以是纯 JS（会被包进 `<script>` 执行）：
+## 30 秒上手（首次配置，约 3 分钟）
 
-   ```js
-   document.body.innerHTML = '<h1>' + new Date() + '</h1>';
-   ```
+1. **Fork 本仓库**，得到你自己的副本。
+2. **打开 Actions**：Fork 出来的仓库默认不会跑工作流，在 Actions 页点一次 “I understand my workflows, go ahead and enable them”。
+3. **启用 Pages**：Settings → Pages → Source 选 **GitHub Actions**。工作流里的 `configure-pages` 也会尝试自动开启，失败时按这步手动开一次。
+4. **建一个 `publish` 标签**：Settings → Labels → New label，名字 `publish`（发布审批用，见下文；不想用审批就把工作流里的 `PUBLISH_LABEL` 设为空字符串）。
+5. **发第一张页面**：新建 Issue，标题写 `hello`，正文粘贴 `<h1>Hello</h1>`，然后给这个 Issue 加上 `publish` 标签。
+6. 等 Actions 跑完（约 30 秒），访问 `https://<你的用户名>.github.io/<仓库名>/hello/`。
 
-3. 核对内容没问题后，给这个 issue 打上 `publish` 标签——**这一下就是审批放行**；没打标签的 issue 不会出现在站点上。
-4. 等 Actions 跑完（`labeled` 事件会自动触发构建），访问 `https://createsun.github.io/code-js-bin-with-issue/abcd/`。
-   改完 issue 正文会重新发布；**去掉 `publish` 标签，页面下线**；删除 issue，页面随之消失。
+> 更省事：把 [`.agents/skills/issue-pages/SKILL.md`](.agents/skills/issue-pages/SKILL.md) 交给你的 AI 助手，它可以替你完成 fork、开 Actions、启用 Pages、建标签、发布第一个页面，并**在 curl 到 200 之后**把最终网址回报给你。支持 `.agents/skills` 的助手（如程小帮）在这个仓库里会自动发现它；Claude Code 用户把它拷到 `.claude/skills/` 即可，其他助手直接让它读这个文件。
 
-> 页面是整份 HTML，Pages 给了 `cache-control: max-age=600`：刚看过的页面在重新部署后可能还被浏览器/CDN 缓存几分钟，看不到新内容时强刷一次（Cmd/Ctrl+Shift+R）。
+## 日常发布一条页面
 
-## 路径规则
+1. 新建 Issue，**标题就是这个页面的路径**，例如 `calculator`。
+2. **正文就是页面源码**：HTML 片段、完整 HTML 文档，或者纯 JavaScript。
+3. 核对内容（也可以本地 `npm run preview` 先看），然后加上 `publish` 标签。
+4. 约 30 秒后访问 `https://<你的用户名>.github.io/<仓库名>/calculator/`。
 
-- 标题去掉首尾空白、把空白折成 `-`、剔除 `/\:*?"<>|#%` 与控制字符后作为目录名，如 `Hello World` → `/Hello-World/`。中文标题也可以，浏览器会做百分号编码。
-- 归一化后重名的（`a b` 和 `a-b`）第二个会加 `-2` 后缀；标题为空则用 `issue-<编号>`。
-- 大小写敏感，链接要和标题完全一致（`404.html` 是纯静态提示页，不做跳转）。
-- 改标题会换路径，旧链接失效（可用旧标题再开一个 issue，或在 `404.html` 里自行扩展映射）。
+改正文会自动重新发布；**去掉 `publish` 标签页面就下线**；删除 Issue 页面随之消失。
 
-## 正文怎么被执行
+## 适用场景
 
-**构建时**（SSG）逐个 issue 生成 `dist/{slug}/index.html`，**正文就是页面本身**（没有 iframe）。页面运行时**不请求任何数据**，正文随 HTML 一起下发，直接执行：
+- **AI 生成的单页应用**：让 AI 直接输出完整 HTML，粘进 Issue 就有一个能分享的网址（本工具不生成代码，只负责发布）。
+- **临时小工具**：计算器、编码转换、文本处理——见上方的在线示例。
+- **交互演示 / 原型**：发给同事或客户点一下就能用，不需要对方登录或安装。
+- **需要一条干净链接的场合**：做活动页、做一次性落地页，不想碰服务器和部署流水线。
 
-- 正文开头就是 HTML 标签 / `<!DOCTYPE` / 注释 → 按 HTML 渲染（带 `<!DOCTYPE`/`<html` 的完整文档原样使用，片段会套上 `src/page.html` 这层外壳，补 `charset` / `viewport` / `title`）。
-- 其余情况 → 按 JS 执行（包进 `<script>`；JS 里拼 HTML 字符串很常见，所以只看开头，不看正文里有没有标签）。
-- 判定不准时用 issue 标签强制：打 `js` 标签恒按 JS，打 `html` 标签恒按 HTML。
-- 片段运行时报错会以红色浮层显示（`Error` / `UnhandledRejection` 都接得住），不至于白屏。
+## 工作原理
 
-因为正文与站点同源，它的权限和普通页面一样：
+```mermaid
+flowchart LR
+  A["新建 Issue<br/>标题 = 路径<br/>正文 = 页面源码"] --> B["publish 标签<br/>（发布审批）"]
+  B --> C["GitHub Actions<br/>构建时读取正文<br/>生成静态 HTML"]
+  C --> D["GitHub Pages<br/>你自己的 HTTPS 网址"]
+```
 
-| 想做的事 | 支持情况 |
+**读取 Issue 发生在构建期，访客打开页面时不再请求任何数据**：每个页面的 HTML 在构建时就生成好了，正文被直接写进文件，所以打开速度就是静态页面的速度。
+
+## 限制（先看这里，避免踩坑）
+
+| 事项 | 现状 |
 | --- | --- |
-| `location.href = …` / `location.replace(…)` | 替换整个标签页，和普通页面一致 |
-| 相对路径 `fetch('./data.json')`、`localStorage`、`sessionStorage`、`document.cookie`、`history.pushState` | 都可用 |
-| `<a href>`、`<form>`、`window.open` | 按浏览器常规行为 |
+| 更新延迟 | 不是实时发布：Issue 保存后约 30 秒上线；刚访问过的页面可能被浏览器/CDN 缓存几分钟（`max-age=600`），强刷一次即可 |
+| 只有静态页面 | 没有后端、数据库，也没有 npm 构建。要用框架得先把产物打成单文件 HTML 再粘贴 |
+| 代码是公开的 | Issue 正文属于公开仓库内容，能看到仓库的人都能看到源码——**不要放 token、密钥** |
+| 没有沙箱隔离 | 页面直接执行代码，同一账号下不同项目路径也**不是**不同源。只适合发布你自己或可信作者的代码，**不能当作"安全运行陌生人代码"的平台** |
+| 平台额度 | Actions 与 Pages 的使用受 GitHub 套餐限制，公开仓库日常使用通常绰绰有余 |
+| 国内访问 | `github.io` 在国内网络下可能不稳定；配置自定义域名 + HTTPS 可以改善，但不保证可达 |
 
-片段被包进 `<script>` 时会转义 `</script`、`<!--` 这类会提前闭合标签的序列；HTML 片段则原样输出（它本身就是页面源码）。
+## 安全与发布审批
 
-## 本地预览
+一个 Issue 要上线，得同时满足两个条件（不满足就跳过，原因会打在构建日志里）：
 
-```bash
-npm run build      # 拉取 issue 生成 dist/
-npm run preview    # 起在 http://localhost:8080
-```
+1. **作者在名单里**——`ISSUE_AUTHOR`，默认等于仓库 owner。
+2. **打了 `publish` 标签**——`PUBLISH_LABEL`，这就是审批动作。
 
-本地默认 `BASE_PATH=/`，所以路径是 `http://localhost:8080/abcd/`；线上是项目站点，前面多一层仓库名。
+标签能当审批用，是因为**打标签需要仓库的 triage 或 write 权限**：外部投稿人做不到自己批准自己。想要 GitHub 原生的部署审批（每次部署都要人工点一次），在 Settings → Environments → `github-pages` 里配 Required reviewers；注意它拦的是每一次部署，且「Prevent self-review」打开后你需要第二个人来批准。
 
-## 目录结构
+想让别人投稿再由你审批：把 `ISSUE_AUTHOR` 留空、保留标签门即可。想彻底关掉审批：`PUBLISH_LABEL: ''`。
 
-```
-scripts/build.mjs              拉取 issue → 生成 dist/（正文在构建时写进页面）
-src/page.html                  片段模式的外壳：__STYLE__ / __TITLE__ / __CONTENT__ / __FOOTER__ 占位
-src/style.css                  站点基础样式，构建时内联进每个页面
-src/footer.html                每页底部的页脚（博客链接），构建时注入
-src/404.html                   未命中路径时的纯静态提示页
-.github/workflows/deploy-pages.yml   issue/推送触发构建并发布到 Pages
-dist/                          构建产物（不入库）
-```
+## 高级配置
 
-## 外观
+### 路径规则
 
-样式集中在 `src/style.css`，构建时内联进每个页面（不额外发请求），默认是一套参考 [bearblog](https://bearblog.dev/) 的极简排版：800px 窄栏居中、Verdana 字体栈、`line-height 1.6`、无卡片无圆角，跟随系统深浅色。要改站点的样子就改这一个文件。
+- 标题去掉首尾空白、空白折成 `-`、剔除 `/\:*?"<>|#%` 与控制字符后作为目录名：`Hello World` → `/Hello-World/`；中文标题也可以（浏览器会做百分号编码）。
+- 归一化后重名的第二个会加 `-2` 后缀；标题为空则用 `issue-<编号>`。
+- 大小写敏感；改标题会换路径，旧链接失效。
 
-内容片段里的 `<style>` 排在基础样式之后，所以能给单页覆盖字体、间距等；想完全自控就写成带 `<!DOCTYPE` 的完整文档，那会原样输出、不套外壳。
-
-页脚放在 `src/footer.html`（现在是博客链接），构建时注入到每一页。两个已知边界：
-
-- 完整文档不注入基础样式（避免和作者自己的 CSS 打架），但页脚仍会追加到文档末尾。
-- 正文里的 JS 如果在解析期执行（普通内联 `<script>`）并整体重写 `document.body.innerHTML`，页脚是解析器随后追加的节点，仍然会保留；但如果重写发生在更晚的时候（`load` 里、异步回调里），页脚会被一起清掉——那种写法改成 `insertAdjacentHTML('beforeend', …)` 之类的追加写法即可。
-
-## 构建脚本的环境变量
+### 环境变量（构建脚本）
 
 | 变量 | 说明 |
 | --- | --- |
 | `GITHUB_REPOSITORY` | `owner/repo`，Actions 自动注入；本地缺失时从 `git remote origin` 推断 |
-| `GITHUB_TOKEN` | 可选，仅用于提高 API 速率限制 / 读取私有仓库 issue |
+| `GITHUB_TOKEN` | 可选，提高 API 速率限制 / 读取私有仓库 Issue |
 | `BASE_PATH` | 站点前缀，项目站点形如 `/code-js-bin-with-issue/`，默认 `/` |
-| `ISSUE_AUTHOR` | 只发布该作者的 issue，默认仓库 owner；设为空字符串则不限作者 |
-| `PUBLISH_LABEL` | 发布审批标签，默认 `publish`：issue 要有这个标签才上线；设为空字符串则不审批 |
+| `SITE_NAME` | 首页标题，默认取仓库名（Fork 后自动是对方的名字） |
+| `ISSUE_AUTHOR` | 只发布该作者的 Issue，默认仓库 owner；空字符串 = 不限作者 |
+| `PUBLISH_LABEL` | 发布审批标签，默认 `publish`；空字符串 = 关闭审批 |
 | `GITHUB_API_URL` | 可选，GitHub Enterprise 时指向自己的 API |
 
-## 发布审批
+### 本地预览
 
-一个 issue 要上线，得同时满足两个条件；不满足就跳过，原因会打在构建日志里：
+```bash
+npm run build      # 拉取 Issue 生成 dist/（需要 GITHUB_TOKEN 或 gh 登录态）
+npm run preview    # 起在 http://localhost:8080
+```
 
-1. **作者在名单里**（`ISSUE_AUTHOR`，默认等于仓库 owner）。
-2. **打了 `publish` 标签**（`PUBLISH_LABEL`）。
+本地默认 `BASE_PATH=/`，路径是 `http://localhost:8080/hello/`；线上是项目站点，前面多一层仓库名。
 
-于是流程变成：写 issue（此时线上还没有这一页）→ 自己核对／本地 `npm run preview` 看效果 → 打上 `publish` 标签 → 自动发布。改正文会重新发布，去掉标签页面就下线。删除 issue 也一样会撤掉页面。
+### 自定义域名
 
-标签这层能当审批用，是因为**打标签需要仓库的 triage 或 write 权限**：外部投稿人没有这个权限，无法自己批准自己的内容，只能等你来打标签。
+在 Settings → Pages → Custom domain 里填域名，并按提示配置 DNS（HTTPS 由 GitHub 自动签发证书）。
 
-想要更强的、GitHub 原生的审批（每次部署前都要人工点一次「Approve」）：仓库 **Settings → Environments → `github-pages`** 里加 **Required reviewers**（公开仓库各套餐都可用）。两个注意点：
+### 外观
 
-- 它拦的是**每一次部署**，包括你自己改 issue 触发的那种，每次都要点一下批准。
-- 「Prevent self-review」默认是关闭的。打开之后发起部署的人不能批准自己的部署——如果你只有自己一个 reviewer，那就没人能批了，需要再加一个人。
+样式集中在 [`src/style.css`](src/style.css)，构建时内联进每个页面（不发额外请求），默认是一套参考 [bearblog](https://bearblog.dev/) 的极简排版：800px 窄栏居中、Verdana 字体栈、跟随系统深浅色。页脚在 [`src/footer.html`](src/footer.html)。内容片段里的 `<style>` 写在基础样式之后，可以覆盖单页样式。
 
-想关掉标签这层审批：把 `PUBLISH_LABEL` 设成空字符串（workflow 里那一行，或本地跑构建时的环境变量），就回到「名单内的 issue 一律发布」。
+## FAQ
 
-## 安全提示
+**如何把 AI 生成的 HTML 变成可访问链接？**
+让 AI 输出完整 HTML，新建 Issue 粘贴进去，加 `publish` 标签，等约 30 秒，链接就是 `https://<你的用户名>.github.io/<仓库名>/<标题>/`。
 
-- 正文与站点同源、拥有整页权限（能跳转、能读写本域存储），所以**两道发布门**是主要防线：仓库是公开的，任何人都能开 issue，但他们既进不了 `ISSUE_AUTHOR` 名单、也打不了 `publish` 标签，内容上不了线。反过来说，只要你给某个人的 issue 打上了 `publish`，那内容就和你自己写的一样有整页权限。
-- 正文来自 issue，属于「你（或你信任的人）自己写的代码」，但它仍然跑在浏览器里：不要在里面放 token、密钥。
-- issue 列表页 `index.html` 只列出已发布的 issue。
+**不买服务器怎么分享一个 JavaScript 小工具？**
+就是这套流程：Issue 里放源码，构建时变成静态页面发布到 GitHub Pages，托管和 HTTPS 都由 GitHub 提供。
+
+**它和 JSBin / CodePen 有什么区别？**
+JSBin / CodePen 面向**在线编辑和实时预览**，内容活在它们的平台上；Issue Pages 面向**发布和托管**——内容以 Issue 形式存在你自己的仓库、页面发布到你自己域名的静态地址。它没有编辑器、没有实时预览、没有后端。
+
+**访客需要 GitHub 账号吗？**
+不需要。发布出来就是普通静态网页，任何人可访问（前提是网络能到 `github.io`）。
+
+**发布要多久？改完链接会变吗？**
+保存 Issue 后约 30 秒上线（实测：6 秒触发构建 + 约 20 秒构建部署）。只要标题不变，路径就不变；改标题才会换路径。
+
+**支持后端、数据库、npm 构建吗？**
+不支持。它是静态托管：只有 HTML/CSS/JS，前端可以直接调用带 CORS 的第三方接口，但没有服务端逻辑。
+
+**一个页面能放多个文件吗？**
+一个 Issue 对应一个页面，所以把 CSS/JS 内联进去（单文件 HTML）。需要多文件就配自定义域名的独立仓库。
+
+## 目录结构
+
+```
+scripts/build.mjs              拉取 Issue → 生成 dist/（正文在构建时写进页面）
+src/page.html                  片段模式的外壳：__STYLE__ / __TITLE__ / __CONTENT__ / __FOOTER__ 占位
+src/style.css                  站点基础样式，构建时内联进每个页面
+src/footer.html                每页底部的页脚
+src/404.html                   未命中路径时的纯静态提示页
+.agents/skills/issue-pages/SKILL.md  给 AI 助手用的 fork + 部署技能
+.github/workflows/deploy-pages.yml   Issue/推送触发构建并发布到 Pages
+dist/                          构建产物（不入库）
+```
+
+## 许可
+
+[MIT](LICENSE)。
