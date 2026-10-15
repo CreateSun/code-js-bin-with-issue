@@ -23,6 +23,8 @@ const repo = process.env.GITHUB_REPOSITORY || detectRepo();
 const basePath = toBasePath(process.env.BASE_PATH || '/');
 // 默认只发布仓库 owner 自己的 issue，避免任何人都能往站点上写内容；设成空字符串则不限作者。
 const authorFilter = (process.env.ISSUE_AUTHOR ?? repo.split('/')[0]).trim().toLowerCase();
+// 发布审批：名单内的 issue 还要打上这个标签才会上线；设成空字符串则等于没有审批。
+const publishLabel = (process.env.PUBLISH_LABEL ?? 'publish').trim().toLowerCase();
 
 const pageTemplate = await readFile(path.join(srcDir, 'page.html'), 'utf8');
 const notFoundTemplate = await readFile(path.join(srcDir, '404.html'), 'utf8');
@@ -62,6 +64,10 @@ const pages = [];
 for (const issue of issues) {
   if (authorFilter && (issue.user?.login || '').toLowerCase() !== authorFilter) {
     console.log(`跳过 #${issue.number}「${issue.title}」：作者 ${issue.user?.login} 不在发布名单内`);
+    continue;
+  }
+  if (publishLabel && !labelNames(issue).includes(publishLabel)) {
+    console.log(`跳过 #${issue.number}「${issue.title}」：还没有 ${publishLabel} 标签（待审批）`);
     continue;
   }
 
@@ -153,10 +159,15 @@ function renderHint(issue) {
  * 打 js / html 标签可以强制指定。
  */
 function resolveMode(issue) {
-  const labels = (issue.labels ?? []).map((label) => (typeof label === 'string' ? label : label.name ?? '').toLowerCase());
+  const labels = labelNames(issue);
   if (labels.includes('js')) return 'js';
   if (labels.includes('html')) return 'html';
   return /^\s*<[a-zA-Z!/]/.test(issue.body ?? '') ? 'html' : 'js';
+}
+
+/** issue 的标签名（小写）。 */
+function labelNames(issue) {
+  return (issue.labels ?? []).map((label) => (typeof label === 'string' ? label : label.name ?? '').toLowerCase());
 }
 
 /** 标题 → 目录名：去掉路径分隔符、控制字符，空白折叠成 -。 */

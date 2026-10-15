@@ -23,8 +23,9 @@
    document.body.innerHTML = '<h1>' + new Date() + '</h1>';
    ```
 
-3. 等 Actions 跑完（`opened` 事件会自动触发构建），访问 `https://createsun.github.io/code-js-bin-with-issue/abcd/`。
-   改完 issue 正文也会自动重新发布；删除 issue，页面随之消失。
+3. 核对内容没问题后，给这个 issue 打上 `publish` 标签——**这一下就是审批放行**；没打标签的 issue 不会出现在站点上。
+4. 等 Actions 跑完（`labeled` 事件会自动触发构建），访问 `https://createsun.github.io/code-js-bin-with-issue/abcd/`。
+   改完 issue 正文会重新发布；**去掉 `publish` 标签，页面下线**；删除 issue，页面随之消失。
 
 > 页面是整份 HTML，Pages 给了 `cache-control: max-age=600`：刚看过的页面在重新部署后可能还被浏览器/CDN 缓存几分钟，看不到新内容时强刷一次（Cmd/Ctrl+Shift+R）。
 
@@ -81,10 +82,29 @@ dist/                          构建产物（不入库）
 | `GITHUB_TOKEN` | 可选，仅用于提高 API 速率限制 / 读取私有仓库 issue |
 | `BASE_PATH` | 站点前缀，项目站点形如 `/code-js-bin-with-issue/`，默认 `/` |
 | `ISSUE_AUTHOR` | 只发布该作者的 issue，默认仓库 owner；设为空字符串则不限作者 |
+| `PUBLISH_LABEL` | 发布审批标签，默认 `publish`：issue 要有这个标签才上线；设为空字符串则不审批 |
 | `GITHUB_API_URL` | 可选，GitHub Enterprise 时指向自己的 API |
+
+## 发布审批
+
+一个 issue 要上线，得同时满足两个条件；不满足就跳过，原因会打在构建日志里：
+
+1. **作者在名单里**（`ISSUE_AUTHOR`，默认等于仓库 owner）。
+2. **打了 `publish` 标签**（`PUBLISH_LABEL`）。
+
+于是流程变成：写 issue（此时线上还没有这一页）→ 自己核对／本地 `npm run preview` 看效果 → 打上 `publish` 标签 → 自动发布。改正文会重新发布，去掉标签页面就下线。删除 issue 也一样会撤掉页面。
+
+标签这层能当审批用，是因为**打标签需要仓库的 triage 或 write 权限**：外部投稿人没有这个权限，无法自己批准自己的内容，只能等你来打标签。
+
+想要更强的、GitHub 原生的审批（每次部署前都要人工点一次「Approve」）：仓库 **Settings → Environments → `github-pages`** 里加 **Required reviewers**（公开仓库各套餐都可用）。两个注意点：
+
+- 它拦的是**每一次部署**，包括你自己改 issue 触发的那种，每次都要点一下批准。
+- 「Prevent self-review」默认是关闭的。打开之后发起部署的人不能批准自己的部署——如果你只有自己一个 reviewer，那就没人能批了，需要再加一个人。
+
+想关掉标签这层审批：把 `PUBLISH_LABEL` 设成空字符串（workflow 里那一行，或本地跑构建时的环境变量），就回到「名单内的 issue 一律发布」。
 
 ## 安全提示
 
-- 正文与站点同源、拥有整页权限（能跳转、能读写本域存储），所以**只发布 owner 自己写的 issue** 是这里的主要防线：仓库是公开的，任何人都能开 issue，否则别人就能在你的 `github.io` 域名下挂一个页面（钓鱼/诱导下载）。这条由 workflow 里的 `ISSUE_AUTHOR` 保证，默认等于仓库 owner；要把发布权给协作方就改这个变量或删掉那一行。
+- 正文与站点同源、拥有整页权限（能跳转、能读写本域存储），所以**两道发布门**是主要防线：仓库是公开的，任何人都能开 issue，但他们既进不了 `ISSUE_AUTHOR` 名单、也打不了 `publish` 标签，内容上不了线。反过来说，只要你给某个人的 issue 打上了 `publish`，那内容就和你自己写的一样有整页权限。
 - 正文来自 issue，属于「你（或你信任的人）自己写的代码」，但它仍然跑在浏览器里：不要在里面放 token、密钥。
 - issue 列表页 `index.html` 只列出已发布的 issue。

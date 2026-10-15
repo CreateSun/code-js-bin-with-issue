@@ -40,6 +40,8 @@ jobs:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
           # 只发布仓库 owner 的 issue；想让协作方也能发布就删掉这一行
           ISSUE_AUTHOR: ${{ github.repository_owner }}
+          # 发布审批：名单内的 issue 还要打上这个标签才会上线；设为空字符串就等于关掉审批
+          PUBLISH_LABEL: publish
         run: node scripts/build.mjs
 
       - uses: actions/upload-pages-artifact@v5
