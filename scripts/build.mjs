@@ -5,19 +5,16 @@
  *   dist/index.html           页面列表
  *   dist/{slug}/index.html    issue 正文即页面本身
  *   dist/404.html             未命中路径的提示页
- *   dist/**                    public/ 下的文件原样拷贝（超出 issue 正文上限的页面走这里）
  *
  * issue 标题决定访问路径，issue 正文就是页面内容本身（HTML 或 JS，见 resolveMode）。
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = path.join(root, 'src');
-const publicDir = path.join(root, 'public');
 const distDir = path.join(root, 'dist');
 
 const apiBase = (process.env.GITHUB_API_URL || 'https://api.github.com').replace(/\/+$/, '');
@@ -68,11 +65,6 @@ await writeFile(
   notFoundTemplate.replaceAll('__BASE__', basePath).replace('__STYLE__', () => style).replace('__FOOTER__', () => footer),
 );
 
-// public/ 里的文件原样发布（单文件超过 issue 正文上限的页面走这里）
-if (existsSync(publicDir)) {
-  await cp(publicDir, distDir, { recursive: true });
-  console.log(`发布 public/ 下的静态文件`);
-}
 
 const takenSlugs = new Set();
 const pages = [];

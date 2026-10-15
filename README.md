@@ -107,9 +107,9 @@ npm run preview    # 起在 http://localhost:8080
 
 本地默认 `BASE_PATH=/`，路径是 `http://localhost:8080/hello/`；线上是项目站点，前面多一层仓库名。
 
-### 放不下的大型页面：public/ 直通
+### 单页体积上限
 
-Issue 正文上限是 65536 字符，单文件更大的页面（例如用工具生成的高密度 SVG 图）放进 `public/` 目录即可原样发布到站点：构建时会把 `public/**` 拷进 `dist/`，访问路径就是仓库里的相对路径（`public/figures/x.html` → `/{repo}/figures/x.html`）。对应的 Issue 正文可以只放一页薄封装（整屏 iframe + 说明文字），入口体验不变。
+Issue 正文上限是 **65536 字符**，也就是这个站点单页的上限。页面（含内联的图片/SVG/CSS/JS）必须压进这个数字；超了就让页面本身变小或变轻，**不要**在仓库里另建资产目录绕过它——那样内容就不在 issue 里了。压不下的常见做法：裁掉装饰性细节、把坐标量化到整数/2 单位、把大的矢量或文本用 `gzip + base64` 内联再由页面解压（见 `bambu-a1-mini` 那个 issue 的写法）。
 
 ### 自定义域名
 
@@ -150,7 +150,6 @@ src/page.html                  片段模式的外壳：__STYLE__ / __TITLE__ / _
 src/style.css                  站点基础样式，构建时内联进每个页面
 src/footer.html                每页底部的页脚
 src/404.html                   未命中路径时的纯静态提示页
-public/                        原样发布的静态文件（超长页面走这里）
 .agents/skills/issue-pages/SKILL.md  给 AI 助手用的 fork + 部署技能
 .github/workflows/deploy-pages.yml   Issue/推送触发构建并发布到 Pages
 dist/                          构建产物（不入库）
