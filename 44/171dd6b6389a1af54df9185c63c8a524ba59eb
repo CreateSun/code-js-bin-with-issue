@@ -1,0 +1,28 @@
+README.md
+  s_9167e36f642b69::t_ca002a70f93af1 88-105
+  s_9167e36f642b69::t_fd4d3fd4cedb68 26-28
+  s_9167e36f642b69::t_9d214b4b9a3f2c 108
+  s_9167e36f642b69::t_3c4aa5dec086b6 85
+scripts/build.mjs
+  s_9167e36f642b69::t_39d11848451d7b 162,168-170
+  s_9167e36f642b69::t_a7fc3ffb2f94ad 69-72
+  s_9167e36f642b69::t_25e18cffd1aa16 26-27
+.github/workflows/deploy-pages.yml
+  s_9167e36f642b69::t_7d8ac341f77570 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "44171dd6b6389a1af54df9185c63c8a524ba59eb",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
