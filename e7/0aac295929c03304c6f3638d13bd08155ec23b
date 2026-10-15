@@ -1,0 +1,21 @@
+src/page.html
+  s_9167e36f642b69::t_1ab5a3a33fdfe9 88-89
+src/404.html
+  s_9167e36f642b69::t_99d0760f1ffda4 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "e70aac295929c03304c6f3638d13bd08155ec23b",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
