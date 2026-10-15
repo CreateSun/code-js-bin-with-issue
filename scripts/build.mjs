@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
- * 把仓库里的 issue 编译成静态站点：
+ * 把仓库里的 issue 编译成静态站点（SSG：正文在构建时写进 HTML，运行时不再请求任何数据）：
  *
  *   dist/index.html           页面列表
- *   dist/index.json           页面列表（404 兜底匹配用）
- *   dist/{slug}/index.html    页面外壳（src/page.html）
- *   dist/{slug}/issue.json    issue 正文 + 元信息，由外壳读取后执行
+ *   dist/{slug}/index.html    issue 正文内联在 iframe 的 srcdoc 属性里
+ *   dist/404.html             未命中路径的提示页
  *
  * issue 标题决定访问路径，issue 正文就是页面内容本身（HTML 或 JS，见 resolveMode）。
  */
@@ -25,15 +24,37 @@ const basePath = toBasePath(process.env.BASE_PATH || '/');
 // 默认只发布仓库 owner 自己的 issue，避免任何人都能往站点上写内容；设成空字符串则不限作者。
 const authorFilter = (process.env.ISSUE_AUTHOR ?? repo.split('/')[0]).trim().toLowerCase();
 
-const pageShell = await readFile(path.join(srcDir, 'page.html'), 'utf8');
-const notFoundShell = (await readFile(path.join(srcDir, '404.html'), 'utf8')).replaceAll('__BASE__', basePath);
+const pageTemplate = await readFile(path.join(srcDir, 'page.html'), 'utf8');
+const notFoundTemplate = await readFile(path.join(srcDir, '404.html'), 'utf8');
+
+/** 追加到片段末尾：出错的片段至少给个可见的报错，而不是白屏。 */
+const REPORT_BLOCK = `<style>
+#__bin_report__{position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow:auto;margin:0;padding:10px 14px;
+background:#fff5f5;color:#cf222e;border-top:1px solid #ffcecb;white-space:pre-wrap;word-break:break-word;
+font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;z-index:2147483647}
+</style>
+<script>
+(function () {
+  function report(label, message, stack) {
+    var box = document.getElementById('__bin_report__');
+    if (!box) { box = document.createElement('pre'); box.id = '__bin_report__'; document.body.appendChild(box); }
+    box.textContent += label + ': ' + message + (stack ? '\\n' + stack : '') + '\\n';
+  }
+  window.__binReport = report;
+  window.addEventListener('error', function (e) { report('Error', e.message, e.error && e.error.stack); });
+  window.addEventListener('unhandledrejection', function (e) {
+    var reason = e.reason;
+    report('UnhandledRejection', (reason && reason.message) || String(reason), reason && reason.stack);
+  });
+})();
+</script>`;
 
 // 先拿到 issue 再清理产物目录，拉取失败时不至于留下半成品
 const issues = await fetchIssues();
 
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
-await writeFile(path.join(distDir, '404.html'), notFoundShell);
+await writeFile(path.join(distDir, '404.html'), notFoundTemplate.replaceAll('__BASE__', basePath));
 
 const takenSlugs = new Set();
 const pages = [];
@@ -46,26 +67,13 @@ for (const issue of issues) {
 
   const slug = uniqueSlug(issue.title, issue.number, takenSlugs);
   const dir = path.join(distDir, slug);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, 'index.html'), pageShell);
-  await writeFile(
-    path.join(dir, 'issue.json'),
-    `${JSON.stringify(
-      {
-        number: issue.number,
-        title: issue.title,
-        state: issue.state,
-        mode: resolveMode(issue),
-        slug,
-        url: `${basePath}${encodeURIComponent(slug)}/`,
-        htmlUrl: issue.html_url,
-        updatedAt: issue.updated_at,
-        body: issue.body ?? '',
-      },
-      null,
-      2,
-    )}\n`,
+  const document = buildDocument(issue);
+  const html = pageTemplate.replace(/__TITLE__|__SRCDOC__/g, (placeholder) =>
+    placeholder === '__TITLE__' ? escapeHtml(issue.title) : escapeAttr(document),
   );
+
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, 'index.html'), html);
 
   pages.push({
     number: issue.number,
@@ -80,7 +88,6 @@ for (const issue of issues) {
 }
 
 await writeFile(path.join(distDir, 'index.html'), renderIndex(pages, basePath));
-await writeFile(path.join(distDir, 'index.json'), `${JSON.stringify({ basePath, pages }, null, 2)}\n`);
 
 console.log(`\n完成：${pages.length} 个页面 → ${path.relative(process.cwd(), distDir)}/`);
 
@@ -103,6 +110,47 @@ async function fetchIssues() {
     if (batch.length < 100) break;
   }
   return all;
+}
+
+/** 构建时把 issue 正文拼成一个完整文档，供 iframe 的 srcdoc 使用。 */
+function buildDocument(issue) {
+  const source = String(issue.body ?? '');
+  if (!source.trim()) return renderHint(issue);
+
+  const head = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(issue.title)}</title>
+</head>
+<body>
+`;
+
+  if (issue.mode === 'js') return `${head}<script>${escapeScript(source)}</script>\n${REPORT_BLOCK}\n</body>\n</html>`;
+  // 本身就是完整文档（带 doctype / <html>）时原样使用，否则补一个带 charset 的外壳
+  if (/^\s*(?:<!doctype\s|<html[\s>])/i.test(source)) return `${source}\n${REPORT_BLOCK}`;
+  return `${head}${source}\n${REPORT_BLOCK}\n</body>\n</html>`;
+}
+
+/** 正文为空时给个提示，而不是白屏。 */
+function renderHint(issue) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(issue.title)}</title>
+<style>
+  body { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: #57606a; font: 14px/1.7 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  a { color: #0969da; }
+</style>
+</head>
+<body>
+<p>issue #${issue.number} 的正文是空的，<a href="${escapeHtml(issue.html_url)}" rel="noreferrer">去 GitHub 编辑</a></p>
+</body>
+</html>`;
 }
 
 /**
@@ -201,6 +249,16 @@ ${pages.length ? `  <ul>\n${cards}\n  </ul>` : `  ${empty}`}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+}
+
+/** 属性值里只需要处理 & 和 "，其余字节（含 </script>、<!--）原样保留即可。 */
+function escapeAttr(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+/** 正文若是 JS，包进 script 标签前要拆掉可能提前闭合标签的序列。 */
+function escapeScript(code) {
+  return String(code).replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
 }
 
 function toBasePath(value) {

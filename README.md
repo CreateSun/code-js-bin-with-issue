@@ -3,7 +3,7 @@
 用 GitHub Issue 当编辑器、用 GitHub Pages 当托管的极简「代码 bin」：
 
 - **issue 标题 = 访问路径**，例如标题 `abcd` → `/abcd/`
-- **issue 正文 = 页面内容本身**，构建后由页面直接执行（HTML 片段、完整 HTML、或纯 JS）
+- **issue 正文 = 页面内容本身**，构建时（SSG）写进该页面的 HTML，运行时不再请求任何数据
 
 站点地址：https://createsun.github.io/code-js-bin-with-issue/
 
@@ -30,17 +30,19 @@
 
 - 标题去掉首尾空白、把空白折成 `-`、剔除 `/\:*?"<>|#%` 与控制字符后作为目录名，如 `Hello World` → `/Hello-World/`。中文标题也可以，浏览器会做百分号编码。
 - 归一化后重名的（`a b` 和 `a-b`）第二个会加 `-2` 后缀；标题为空则用 `issue-<编号>`。
-- 大小写敏感。链接被改成小写或重复编码时会命中 `404.html`，它会按标题做一次忽略大小写的兜底跳转。
+- 大小写敏感，链接要和标题完全一致（`404.html` 是纯静态提示页，不做跳转）。
 - 改标题会换路径，旧链接失效（可用旧标题再开一个 issue，或在 `404.html` 里自行扩展映射）。
 
 ## 正文怎么被执行
 
-构建时逐个 issue 生成 `dist/{slug}/index.html`（外壳）和 `dist/{slug}/issue.json`（正文 + 元信息）。外壳读取 `issue.json`，把正文拼成一个文档通过 `srcdoc` 注入 `<iframe sandbox="allow-scripts allow-modals allow-popups allow-forms">` 执行：
+**构建时**（SSG）逐个 issue 生成 `dist/{slug}/index.html`：外壳把正文拼成一个完整文档，转义后内联进 `<iframe sandbox="allow-scripts allow-modals allow-popups allow-forms" srcdoc="...">`。页面运行时**不请求任何数据**，正文随 HTML 一起下发，直接执行：
 
 - 正文开头就是 HTML 标签 / `<!DOCTYPE` / 注释 → 按 HTML 渲染（带 `<!DOCTYPE`/`<html` 的完整文档原样使用，片段会补上带 `charset` 的外壳）。
 - 其余情况 → 按 JS 执行（包进 `<script>`；JS 里拼 HTML 字符串很常见，所以只看开头，不看正文里有没有标签）。
 - 判定不准时用 issue 标签强制：打 `js` 标签恒按 JS，打 `html` 标签恒按 HTML。
 - 片段运行时报错会以红色浮层显示（`Error` / `UnhandledRejection` 都接得住），不至于白屏。
+
+正文放在 `srcdoc` 属性里（只转义 `&` 和 `"`），所以正文含 `</script>`、`<!--` 这类序列也破坏不了宿主页面。
 
 因为 iframe 没有 `allow-same-origin`，正文运行在不透明源里：拿不到外壳页面的 DOM、`localStorage`、cookie，也无法用相对路径 `fetch` 自己的文件（跨域且带 CORS 的接口可以调）。如果确实需要正文直接操作页面本身，把 `src/page.html` 里的 `sandbox` 属性去掉即可，代价是正文获得与外层页面同源的权限。
 
@@ -56,9 +58,9 @@ npm run preview    # 起在 http://localhost:8080
 ## 目录结构
 
 ```
-scripts/build.mjs              拉取 issue → 生成 dist/
-src/page.html                  单个页面的外壳（读取 issue.json 并执行正文）
-src/404.html                   未命中路径时的提示 + 兜底跳转
+scripts/build.mjs              拉取 issue → 生成 dist/（正文在构建时写进页面）
+src/page.html                  单页模板：__TITLE__ / __SRCDOC__ 占位，无运行时脚本
+src/404.html                   未命中路径时的纯静态提示页
 .github/workflows/deploy-pages.yml   issue/推送触发构建并发布到 Pages
 dist/                          构建产物（不入库）
 ```
