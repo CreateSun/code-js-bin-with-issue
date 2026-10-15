@@ -127,7 +127,7 @@ function buildDocument(issue) {
 <body>
 `;
 
-  if (issue.mode === 'js') return `${head}<script>${escapeScript(source)}</script>\n${REPORT_BLOCK}\n</body>\n</html>`;
+  if (resolveMode(issue) === 'js') return `${head}<script>${escapeScript(source)}</script>\n${REPORT_BLOCK}\n</body>\n</html>`;
   // 本身就是完整文档（带 doctype / <html>）时原样使用，否则补一个带 charset 的外壳
   if (/^\s*(?:<!doctype\s|<html[\s>])/i.test(source)) return `${source}\n${REPORT_BLOCK}`;
   return `${head}${source}\n${REPORT_BLOCK}\n</body>\n</html>`;

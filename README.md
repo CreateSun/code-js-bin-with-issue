@@ -26,6 +26,8 @@
 3. 等 Actions 跑完（`opened` 事件会自动触发构建），访问 `https://createsun.github.io/code-js-bin-with-issue/abcd/`。
    改完 issue 正文也会自动重新发布；删除 issue，页面随之消失。
 
+> 页面是整份 HTML，Pages 给了 `cache-control: max-age=600`：刚看过的页面在重新部署后可能还被浏览器/CDN 缓存几分钟，看不到新内容时强刷一次（Cmd/Ctrl+Shift+R）。
+
 ## 路径规则
 
 - 标题去掉首尾空白、把空白折成 `-`、剔除 `/\:*?"<>|#%` 与控制字符后作为目录名，如 `Hello World` → `/Hello-World/`。中文标题也可以，浏览器会做百分号编码。
