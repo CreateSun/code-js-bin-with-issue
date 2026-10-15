@@ -1,0 +1,80 @@
+# code-js-bin-with-issue
+
+用 GitHub Issue 当编辑器、用 GitHub Pages 当托管的极简「代码 bin」：
+
+- **issue 标题 = 访问路径**，例如标题 `abcd` → `/abcd/`
+- **issue 正文 = 页面内容本身**，构建后由页面直接执行（HTML 片段、完整 HTML、或纯 JS）
+
+站点地址：https://createsun.github.io/code-js-bin-with-issue/
+
+## 怎么用
+
+1. 在仓库里新建 issue，标题写英文路径名（如 `abcd`）。
+2. 正文写页面内容。可以是 HTML：
+
+   ```html
+   <h1>hello</h1>
+   <button onclick="document.body.style.background='#ffe'">点我</button>
+   ```
+
+   也可以是纯 JS（会被包进 `<script>` 执行）：
+
+   ```js
+   document.body.innerHTML = '<h1>' + new Date() + '</h1>';
+   ```
+
+3. 等 Actions 跑完（`opened` 事件会自动触发构建），访问 `https://createsun.github.io/code-js-bin-with-issue/abcd/`。
+   改完 issue 正文也会自动重新发布；删除 issue，页面随之消失。
+
+## 路径规则
+
+- 标题去掉首尾空白、把空白折成 `-`、剔除 `/\:*?"<>|#%` 与控制字符后作为目录名，如 `Hello World` → `/Hello-World/`。中文标题也可以，浏览器会做百分号编码。
+- 归一化后重名的（`a b` 和 `a-b`）第二个会加 `-2` 后缀；标题为空则用 `issue-<编号>`。
+- 大小写敏感。链接被改成小写或重复编码时会命中 `404.html`，它会按标题做一次忽略大小写的兜底跳转。
+- 改标题会换路径，旧链接失效（可用旧标题再开一个 issue，或在 `404.html` 里自行扩展映射）。
+
+## 正文怎么被执行
+
+构建时逐个 issue 生成 `dist/{slug}/index.html`（外壳）和 `dist/{slug}/issue.json`（正文 + 元信息）。外壳读取 `issue.json`，把正文拼成一个文档通过 `srcdoc` 注入 `<iframe sandbox="allow-scripts allow-modals allow-popups allow-forms">` 执行：
+
+- 正文开头就是 HTML 标签 / `<!DOCTYPE` / 注释 → 按 HTML 渲染（带 `<!DOCTYPE`/`<html` 的完整文档原样使用，片段会补上带 `charset` 的外壳）。
+- 其余情况 → 按 JS 执行（包进 `<script>`；JS 里拼 HTML 字符串很常见，所以只看开头，不看正文里有没有标签）。
+- 判定不准时用 issue 标签强制：打 `js` 标签恒按 JS，打 `html` 标签恒按 HTML。
+- 片段运行时报错会以红色浮层显示（`Error` / `UnhandledRejection` 都接得住），不至于白屏。
+
+因为 iframe 没有 `allow-same-origin`，正文运行在不透明源里：拿不到外壳页面的 DOM、`localStorage`、cookie，也无法用相对路径 `fetch` 自己的文件（跨域且带 CORS 的接口可以调）。如果确实需要正文直接操作页面本身，把 `src/page.html` 里的 `sandbox` 属性去掉即可，代价是正文获得与外层页面同源的权限。
+
+## 本地预览
+
+```bash
+npm run build      # 拉取 issue 生成 dist/
+npm run preview    # 起在 http://localhost:8080
+```
+
+本地默认 `BASE_PATH=/`，所以路径是 `http://localhost:8080/abcd/`；线上是项目站点，前面多一层仓库名。
+
+## 目录结构
+
+```
+scripts/build.mjs              拉取 issue → 生成 dist/
+src/page.html                  单个页面的外壳（读取 issue.json 并执行正文）
+src/404.html                   未命中路径时的提示 + 兜底跳转
+.github/workflows/deploy-pages.yml   issue/推送触发构建并发布到 Pages
+dist/                          构建产物（不入库）
+```
+
+## 构建脚本的环境变量
+
+| 变量 | 说明 |
+| --- | --- |
+| `GITHUB_REPOSITORY` | `owner/repo`，Actions 自动注入；本地缺失时从 `git remote origin` 推断 |
+| `GITHUB_TOKEN` | 可选，仅用于提高 API 速率限制 / 读取私有仓库 issue |
+| `BASE_PATH` | 站点前缀，项目站点形如 `/code-js-bin-with-issue/`，默认 `/` |
+| `ISSUE_AUTHOR` | 只发布该作者的 issue，默认仓库 owner；设为空字符串则不限作者 |
+| `GITHUB_API_URL` | 可选，GitHub Enterprise 时指向自己的 API |
+
+## 安全提示
+
+- 仓库是公开的，任何人都能开 issue。所以默认 `ISSUE_AUTHOR` 只发布 owner 自己写的 issue —— 否则任何人都能在你的 `github.io` 域名下挂一个页面（钓鱼/诱导下载）。要把发布权给协作方，去掉 workflow 里那一行或改这个变量。
+- 正文来自 issue，属于「你（或你信任的人）自己写的代码」，但它仍然跑在浏览器里：不要在里面放 token、密钥。
+- issue 列表页 `index.html` 只列出已发布的 issue。

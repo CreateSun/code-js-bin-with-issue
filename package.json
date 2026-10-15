@@ -1,0 +1,13 @@
+{
+  "name": "code-js-bin-with-issue",
+  "private": true,
+  "type": "module",
+  "description": "用 GitHub Issue 当内容源的静态站点：issue 标题即路径，issue 正文即页面内容",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/build.mjs && python3 -m http.server 8080 --directory dist"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

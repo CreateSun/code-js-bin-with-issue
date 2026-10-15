@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>页面不存在</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    box-sizing: border-box; background: #f6f8fa; color: #1f2328;
+    font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { max-width: 560px; }
+  h1 { margin: 0 0 8px; font-size: 44px; }
+  p { margin: 0 0 10px; color: #57606a; }
+  code { padding: 1px 5px; border-radius: 5px; background: #eff1f3; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  a { color: #0969da; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0d1117; color: #e6edf3; }
+    p { color: #9198a1; }
+    code { background: #21262d; }
+    a { color: #4493f8; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>404</h1>
+  <p>没有找到 <code id="path"></code> 对应的页面。</p>
+  <p>页面对应的是仓库里的 issue：标题即路径，正文即内容。</p>
+  <p id="hint" hidden>已按标题匹配到同名 issue，正在跳转…</p>
+  <p><a id="index" href="__BASE__">查看全部页面</a></p>
+</main>
+<script>
+(function () {
+  var base = '__BASE__';
+  document.getElementById('path').textContent = decodeURIComponent(location.pathname);
+
+  // 链接被改成小写 / 多次编码时按标题兜底匹配一次
+  var tail = decodeURIComponent(location.pathname.slice(base.length)).replace(/^\/+|\/+$/g, '');
+  if (!tail) return;
+
+  fetch(base + 'index.json', { cache: 'no-store' })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      var hit = data && data.pages.filter(function (page) {
+        return page.slug.toLowerCase() === tail.toLowerCase();
+      })[0];
+      if (!hit) return;
+      document.getElementById('hint').hidden = false;
+      location.replace(base + hit.url);
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>
