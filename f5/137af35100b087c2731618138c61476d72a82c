@@ -1,0 +1,29 @@
+src/page.html
+  s_9167e36f642b69::t_f53c51892b62c8 7,14-16
+scripts/build.mjs
+  s_9167e36f642b69::t_441488f595f307 30-50
+  s_9167e36f642b69::t_96d0843589bdaa 3,6-7,27-28,57,70-72,75-77,115-155,254-261
+src/404.html
+  s_9167e36f642b69::t_9177b83d64b68e 26-28
+README.md
+  s_9167e36f642b69::t_02bf8f28c6385b 33
+  s_9167e36f642b69::t_f898ab89a442a2 38,45
+  s_9167e36f642b69::t_b7a173ceac8444 6
+  s_9167e36f642b69::t_a3d3565a76e858 61-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "f5137af35100b087c2731618138c61476d72a82c",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
