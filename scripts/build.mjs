@@ -28,6 +28,7 @@ const publishLabel = (process.env.PUBLISH_LABEL ?? 'publish').trim().toLowerCase
 
 const pageTemplate = await readFile(path.join(srcDir, 'page.html'), 'utf8');
 const notFoundTemplate = await readFile(path.join(srcDir, '404.html'), 'utf8');
+const style = await readFile(path.join(srcDir, 'style.css'), 'utf8');
 
 /** 追加到片段末尾：出错的片段至少给个可见的报错，而不是白屏。 */
 const REPORT_BLOCK = `<style>
@@ -56,7 +57,7 @@ const issues = await fetchIssues();
 
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
-await writeFile(path.join(distDir, '404.html'), notFoundTemplate.replaceAll('__BASE__', basePath));
+await writeFile(path.join(distDir, '404.html'), notFoundTemplate.replaceAll('__BASE__', basePath).replace('__STYLE__', () => style));
 
 const takenSlugs = new Set();
 const pages = [];
@@ -129,28 +130,31 @@ function buildPage(issue, template) {
 /** 用函数式 replacer：正文里出现 $& 之类的序列时不会被当成替换模式。 */
 function fillTemplate(template, title, content) {
   return template
+    .replace('__STYLE__', () => style)
     .replace('__TITLE__', () => escapeHtml(title))
     .replace('__CONTENT__', () => `${content}\n${REPORT_BLOCK}`);
 }
 
 /** 正文为空时给个提示，而不是白屏。 */
 function renderHint(issue) {
-  return `<!DOCTYPE html>
+  return fillTemplate(
+    `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(issue.title)}</title>
+<title>__TITLE__</title>
 <style>
-  body { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center;
-    color: #57606a; font: 14px/1.7 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
-  a { color: #0969da; }
+__STYLE__
 </style>
 </head>
 <body>
 <p>issue #${issue.number} 的正文是空的，<a href="${escapeHtml(issue.html_url)}" rel="noreferrer">去 GitHub 编辑</a></p>
 </body>
-</html>`;
+</html>`,
+    issue.title,
+    '',
+  );
 }
 
 /**
@@ -191,21 +195,19 @@ function uniqueSlug(title, number, taken) {
 }
 
 function renderIndex(pages, basePath) {
-  const cards = pages
-    .map(
-      (page) => `      <li class="card">
-        <a class="title" href="./${page.url}">${escapeHtml(page.title)}</a>
-        <p class="meta">
-          <span class="badge ${page.state}">${escapeHtml(page.state)}</span>
-          <span>#${page.number}</span>
-          <span>更新于 ${escapeHtml(page.updatedAt.slice(0, 10))}</span>
-          <a href="${escapeHtml(page.htmlUrl)}">GitHub issue</a>
-        </p>
-      </li>`,
-    )
+  const items = pages
+    .map((page) => {
+      const date = escapeHtml(page.updatedAt.slice(0, 10));
+      const state = page.state === 'open' ? '' : ' · 已关闭';
+      return `    <li>
+      <time datetime="${date}">${date}</time>
+      <span><a href="./${page.url}">${escapeHtml(page.title)}</a>
+        <span class="meta">#${page.number}${state} · <a href="${escapeHtml(page.htmlUrl)}">编辑</a></span></span>
+    </li>`;
+    })
     .join('\n');
 
-  const empty = `<p class="empty">还没有 issue。新建一个 issue，标题就是访问路径，正文就是页面内容。</p>`;
+  const empty = `  <p class="muted">还没有 issue。新建一个 issue，标题就是访问路径，正文就是页面内容，打上 <code>publish</code> 标签后上线。</p>`;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -214,39 +216,14 @@ function renderIndex(pages, basePath) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>code-js-bin-with-issue</title>
 <style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 40px 20px 64px; background: #f6f8fa; color: #1f2328;
-    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; }
-  h1 { margin: 0 0 6px; font-size: 24px; }
-  .lead { margin: 0 0 28px; color: #57606a; }
-  .lead code { padding: 1px 5px; border-radius: 5px; background: #eff1f3; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
-  .card { padding: 14px 18px; border: 1px solid #d1d9e0; border-radius: 10px; background: #fff; }
-  .title { font-size: 17px; font-weight: 600; color: #0969da; text-decoration: none; }
-  .title:hover { text-decoration: underline; }
-  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 0; color: #57606a; font-size: 13px; }
-  .meta a { color: #57606a; }
-  .badge { padding: 1px 8px; border-radius: 999px; font-size: 12px; }
-  .badge.open { background: #dafbe1; color: #1a7f37; }
-  .badge.closed { background: #f3d8fb; color: #8250df; }
-  .empty { padding: 18px; border: 1px dashed #d1d9e0; border-radius: 10px; color: #57606a; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #0d1117; color: #e6edf3; }
-    .card { background: #151b23; border-color: #3d444d; }
-    .lead code { background: #21262d; }
-    .title { color: #4493f8; }
-    .lead, .meta, .meta a, .empty { color: #9198a1; }
-  }
+${style}
 </style>
 </head>
 <body>
-<main>
-  <h1>code-js-bin-with-issue</h1>
-  <p class="lead">issue 标题即路径（<code>${escapeHtml(basePath)}{标题}/</code>），issue 正文即页面内容。</p>
-${pages.length ? `  <ul>\n${cards}\n  </ul>` : `  ${empty}`}
-</main>
+<h1>code-js-bin-with-issue</h1>
+<p class="muted">issue 标题即路径（<code>${escapeHtml(basePath)}{标题}/</code>），正文即页面内容。</p>
+<hr>
+${pages.length ? `  <ul class="post-list">\n${items}\n  </ul>` : empty}
 </body>
 </html>
 `;

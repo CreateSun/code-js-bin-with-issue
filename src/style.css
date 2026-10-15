@@ -1,0 +1,86 @@
+/* 站点基础样式（参考 bearblog.dev 的默认主题：窄栏、无卡片、克制）
+   构建时内联进每个页面；内容里的 <style> 写在后面，可以覆盖这里的规则。 */
+:root {
+  --width: 800px;
+  --background: #fff;
+  --heading: #222;
+  --text: #444;
+  --link: #3273dc;
+  --visited: #8b6fcb;
+  --muted: #6b6b6b;
+  --code-background: #f2f2f2;
+  --code: #222;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #01242e;
+    --heading: #eee;
+    --text: #ddd;
+    --link: #8cc2dd;
+    --visited: #a58fe0;
+    --muted: #9fb3ba;
+    --code-background: #000;
+    --code: #ddd;
+  }
+}
+
+body {
+  margin: auto;
+  padding: 20px;
+  max-width: var(--width);
+  background: var(--background);
+  color: var(--text);
+  font: 1em/1.6 Verdana, "PingFang SC", "Microsoft YaHei", sans-serif;
+  overflow-wrap: break-word;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; }
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+a:visited { color: var(--visited); }
+
+strong, b { color: var(--heading); }
+
+hr { border: 0; border-top: 1px dashed; }
+
+code {
+  padding: 2px 4px;
+  background: var(--code-background);
+  color: var(--code);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+pre {
+  padding: 12px;
+  background: var(--code-background);
+  color: var(--code);
+  overflow-x: auto;
+}
+
+pre code { padding: 0; background: none; }
+
+blockquote {
+  margin-left: 0;
+  padding-left: 20px;
+  border-left: 1px solid #999;
+  font-style: italic;
+}
+
+img { max-width: 100%; }
+table { width: 100%; }
+button { cursor: pointer; }
+
+.muted { color: var(--muted); }
+
+/* 首页的 issue 列表：日期 + 标题两栏，窄屏改成两行 */
+ul.post-list { margin: 0; padding: 0; list-style: none; }
+ul.post-list li { display: flex; padding: 3px 0; }
+ul.post-list li > time { flex: 0 0 130px; color: var(--muted); }
+ul.post-list li .meta { color: var(--muted); font-size: 0.9em; }
+
+@media (max-width: 480px) {
+  ul.post-list li { display: block; }
+  ul.post-list li > time { display: block; }
+}
