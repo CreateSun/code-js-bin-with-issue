@@ -8,6 +8,19 @@ description: 帮用户把 Issue Pages（用 GitHub Issue 当内容源的静态�
 
 帮用户把自己的一份 Issue Pages 跑起来。上游仓库默认是 `CreateSun/code-js-bin-with-issue`，用户要 fork 的是它。
 
+## 发布内容的唯一来源是 issue
+
+这条是硬规则，任何一步都不能绕开：
+
+- **页面的每一个字节都来自 issue 正文。** 构建脚本只读 issue（`scripts/build.mjs` 调 Issues API），生成 `dist/` 后发布。
+- **不要在仓库里另建发布通道**：`public/`、`assets/`、`docs/` 里放页面 HTML、或让构建去拷贝仓库里的静态文件，都会让"站点上的内容"多出一个来源，代码和 issue 立刻开始分叉，审批门（`publish` 标签）也管不到它。需要新页面就开 issue。
+- **单页上限 65536 字符**（GitHub 对 issue 正文的硬限制）。发布前先量：`node -e 'console.log(require("fs").readFileSync("body.html","utf8").length)'`，超了就必须让页面变轻，而不是换通道：
+  1. 裁掉装饰性细节（细网格、刻度、齿纹、螺线、小零件的面色带）；
+  2. 坐标量化（四舍五入到 1–2 个单位，1× 分辨率看不出）；
+  3. 体积还大就把矢量/文本用 `gzip + base64` 内联，页面里用 `DecompressionStream("gzip")` 解压后再挂载（`bambu-a1-mini` 这个 issue 就是这么做的，正文 64 KB 装下一张约 34000 个坐标的等距图）。
+  4. 一个页面实在装不下就拆成几个 issue 分别发布，不要拼出第二种发布方式。
+- 用户明确要求"把某个仓库文件发布到站点"时，也要走 issue：把内容贴进 issue 正文，而不是加旁路。
+
 ## 先确认三件事
 
 1. `gh auth status` 显示已登录，且 token 有 `repo` scope（没有就先让用户 `gh auth login`，不要代替用户登录）。
@@ -110,6 +123,7 @@ grep -q "页面正文里的某个特征字符串" /tmp/page.html && echo "内容
 | 构建日志里全是「跳过 #N … 还没有 publish 标签」 | 标签名与 `PUBLISH_LABEL` 不一致，或 issue 没打标签 |
 | 构建日志里「作者 xxx 不在发布名单内」 | `ISSUE_AUTHOR` 是别人；要放开发布就把它设为空字符串 |
 | 构建成功但访问 404 | Pages 没启用 / 构建源不是 GitHub Actions（步骤 3）；或路径拼错、大小写不符 |
+| 发布时 `gh` 报 `Body is too long (maximum is 65536 characters)` | 页面超过单页上限，按上文压体积，不要在仓库里加旁路 |
 | 页面是旧的 | Pages 对 HTML 有 `cache-control: max-age=600`，强刷一次 |
 | `gh: Not Found` / `Resource not accessible` | token 缺 `repo` scope 或不是仓库 admin |
 
@@ -119,3 +133,4 @@ grep -q "页面正文里的某个特征字符串" /tmp/page.html && echo "内容
 - 不要替用户改仓库名、转让或删除仓库；改名会让全部旧链接失效，要由用户决定。
 - 不要把 token、密码写进任何文件或命令参数里让用户看到。
 - 只有在用户明确要求时才关闭审批门或放开作者名单——这两项是防止别人往他的域名上发内容的主要手段。
+- 不要在仓库里为页面内容另开通道（`public/`、资产目录、构建期拷贝静态文件）。内容的唯一来源是 issue；页面太大就压小它，见开头那节。
