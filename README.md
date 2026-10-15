@@ -37,16 +37,22 @@
 
 ## 正文怎么被执行
 
-**构建时**（SSG）逐个 issue 生成 `dist/{slug}/index.html`：外壳把正文拼成一个完整文档，转义后内联进 `<iframe sandbox="allow-scripts allow-modals allow-popups allow-forms" srcdoc="...">`。页面运行时**不请求任何数据**，正文随 HTML 一起下发，直接执行：
+**构建时**（SSG）逐个 issue 生成 `dist/{slug}/index.html`，**正文就是页面本身**（没有 iframe）。页面运行时**不请求任何数据**，正文随 HTML 一起下发，直接执行：
 
-- 正文开头就是 HTML 标签 / `<!DOCTYPE` / 注释 → 按 HTML 渲染（带 `<!DOCTYPE`/`<html` 的完整文档原样使用，片段会补上带 `charset` 的外壳）。
+- 正文开头就是 HTML 标签 / `<!DOCTYPE` / 注释 → 按 HTML 渲染（带 `<!DOCTYPE`/`<html` 的完整文档原样使用，片段会套上 `src/page.html` 这层外壳，补 `charset` / `viewport` / `title`）。
 - 其余情况 → 按 JS 执行（包进 `<script>`；JS 里拼 HTML 字符串很常见，所以只看开头，不看正文里有没有标签）。
 - 判定不准时用 issue 标签强制：打 `js` 标签恒按 JS，打 `html` 标签恒按 HTML。
 - 片段运行时报错会以红色浮层显示（`Error` / `UnhandledRejection` 都接得住），不至于白屏。
 
-正文放在 `srcdoc` 属性里（只转义 `&` 和 `"`），所以正文含 `</script>`、`<!--` 这类序列也破坏不了宿主页面。
+因为正文与站点同源，它的权限和普通页面一样：
 
-因为 iframe 没有 `allow-same-origin`，正文运行在不透明源里：拿不到外壳页面的 DOM、`localStorage`、cookie，也无法用相对路径 `fetch` 自己的文件（跨域且带 CORS 的接口可以调）。如果确实需要正文直接操作页面本身，把 `src/page.html` 里的 `sandbox` 属性去掉即可，代价是正文获得与外层页面同源的权限。
+| 想做的事 | 支持情况 |
+| --- | --- |
+| `location.href = …` / `location.replace(…)` | 替换整个标签页，和普通页面一致 |
+| 相对路径 `fetch('./data.json')`、`localStorage`、`sessionStorage`、`document.cookie`、`history.pushState` | 都可用 |
+| `<a href>`、`<form>`、`window.open` | 按浏览器常规行为 |
+
+片段被包进 `<script>` 时会转义 `</script`、`<!--` 这类会提前闭合标签的序列；HTML 片段则原样输出（它本身就是页面源码）。
 
 ## 本地预览
 
@@ -61,7 +67,7 @@ npm run preview    # 起在 http://localhost:8080
 
 ```
 scripts/build.mjs              拉取 issue → 生成 dist/（正文在构建时写进页面）
-src/page.html                  单页模板：__TITLE__ / __SRCDOC__ 占位，无运行时脚本
+src/page.html                  片段模式的外壳：__TITLE__ / __CONTENT__ 占位
 src/404.html                   未命中路径时的纯静态提示页
 .github/workflows/deploy-pages.yml   issue/推送触发构建并发布到 Pages
 dist/                          构建产物（不入库）
@@ -79,6 +85,6 @@ dist/                          构建产物（不入库）
 
 ## 安全提示
 
-- 仓库是公开的，任何人都能开 issue。所以默认 `ISSUE_AUTHOR` 只发布 owner 自己写的 issue —— 否则任何人都能在你的 `github.io` 域名下挂一个页面（钓鱼/诱导下载）。要把发布权给协作方，去掉 workflow 里那一行或改这个变量。
+- 正文与站点同源、拥有整页权限（能跳转、能读写本域存储），所以**只发布 owner 自己写的 issue** 是这里的主要防线：仓库是公开的，任何人都能开 issue，否则别人就能在你的 `github.io` 域名下挂一个页面（钓鱼/诱导下载）。这条由 workflow 里的 `ISSUE_AUTHOR` 保证，默认等于仓库 owner；要把发布权给协作方就改这个变量或删掉那一行。
 - 正文来自 issue，属于「你（或你信任的人）自己写的代码」，但它仍然跑在浏览器里：不要在里面放 token、密钥。
 - issue 列表页 `index.html` 只列出已发布的 issue。

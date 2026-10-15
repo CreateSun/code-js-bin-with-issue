@@ -3,7 +3,7 @@
  * 把仓库里的 issue 编译成静态站点（SSG：正文在构建时写进 HTML，运行时不再请求任何数据）：
  *
  *   dist/index.html           页面列表
- *   dist/{slug}/index.html    issue 正文内联在 iframe 的 srcdoc 属性里
+ *   dist/{slug}/index.html    issue 正文即页面本身
  *   dist/404.html             未命中路径的提示页
  *
  * issue 标题决定访问路径，issue 正文就是页面内容本身（HTML 或 JS，见 resolveMode）。
@@ -67,10 +67,7 @@ for (const issue of issues) {
 
   const slug = uniqueSlug(issue.title, issue.number, takenSlugs);
   const dir = path.join(distDir, slug);
-  const document = buildDocument(issue);
-  const html = pageTemplate.replace(/__TITLE__|__SRCDOC__/g, (placeholder) =>
-    placeholder === '__TITLE__' ? escapeHtml(issue.title) : escapeAttr(document),
-  );
+  const html = buildPage(issue, pageTemplate);
 
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, 'index.html'), html);
@@ -112,25 +109,22 @@ async function fetchIssues() {
   return all;
 }
 
-/** 构建时把 issue 正文拼成一个完整文档，供 iframe 的 srcdoc 使用。 */
-function buildDocument(issue) {
+/** 构建时把 issue 正文拼成一个完整页面：正文就是页面本身，与站点同源。 */
+function buildPage(issue, template) {
   const source = String(issue.body ?? '');
   if (!source.trim()) return renderHint(issue);
 
-  const head = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(issue.title)}</title>
-</head>
-<body>
-`;
-
-  if (resolveMode(issue) === 'js') return `${head}<script>${escapeScript(source)}</script>\n${REPORT_BLOCK}\n</body>\n</html>`;
-  // 本身就是完整文档（带 doctype / <html>）时原样使用，否则补一个带 charset 的外壳
+  if (resolveMode(issue) === 'js') return fillTemplate(template, issue.title, `<script>${escapeScript(source)}</script>`);
+  // 本身就是完整文档（带 doctype / <html>）时原样使用，否则套一层片段外壳
   if (/^\s*(?:<!doctype\s|<html[\s>])/i.test(source)) return `${source}\n${REPORT_BLOCK}`;
-  return `${head}${source}\n${REPORT_BLOCK}\n</body>\n</html>`;
+  return fillTemplate(template, issue.title, source);
+}
+
+/** 用函数式 replacer：正文里出现 $& 之类的序列时不会被当成替换模式。 */
+function fillTemplate(template, title, content) {
+  return template
+    .replace('__TITLE__', () => escapeHtml(title))
+    .replace('__CONTENT__', () => `${content}\n${REPORT_BLOCK}`);
 }
 
 /** 正文为空时给个提示，而不是白屏。 */
@@ -249,11 +243,6 @@ ${pages.length ? `  <ul>\n${cards}\n  </ul>` : `  ${empty}`}
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-}
-
-/** 属性值里只需要处理 & 和 "，其余字节（含 </script>、<!--）原样保留即可。 */
-function escapeAttr(value) {
-  return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
 /** 正文若是 JS，包进 script 标签前要拆掉可能提前闭合标签的序列。 */
