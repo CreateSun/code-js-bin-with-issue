@@ -1,0 +1,24 @@
+README.md
+  s_9167e36f642b69::t_340141bf317fe4 19-25
+README.en.md
+  s_9167e36f642b69::t_aaad3b60a6fdfe 19-25
+.agents/skills/issue-pages/SKILL.md
+  s_9167e36f642b69::t_ba6e04dd47c8bd 109
+  s_9167e36f642b69::t_eb33b1681a66e6 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "311e9de5d050596850671ed4220738710ee0ddc8",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
