@@ -68,8 +68,9 @@ npm run preview    # 起在 http://localhost:8080
 
 ```
 scripts/build.mjs              拉取 issue → 生成 dist/（正文在构建时写进页面）
-src/page.html                  片段模式的外壳：__STYLE__ / __TITLE__ / __CONTENT__ 占位
+src/page.html                  片段模式的外壳：__STYLE__ / __TITLE__ / __CONTENT__ / __FOOTER__ 占位
 src/style.css                  站点基础样式，构建时内联进每个页面
+src/footer.html                每页底部的页脚（博客链接），构建时注入
 src/404.html                   未命中路径时的纯静态提示页
 .github/workflows/deploy-pages.yml   issue/推送触发构建并发布到 Pages
 dist/                          构建产物（不入库）
@@ -80,6 +81,11 @@ dist/                          构建产物（不入库）
 样式集中在 `src/style.css`，构建时内联进每个页面（不额外发请求），默认是一套参考 [bearblog](https://bearblog.dev/) 的极简排版：800px 窄栏居中、Verdana 字体栈、`line-height 1.6`、无卡片无圆角，跟随系统深浅色。要改站点的样子就改这一个文件。
 
 内容片段里的 `<style>` 排在基础样式之后，所以能给单页覆盖字体、间距等；想完全自控就写成带 `<!DOCTYPE` 的完整文档，那会原样输出、不套外壳。
+
+页脚放在 `src/footer.html`（现在是博客链接），构建时注入到每一页。两个已知边界：
+
+- 完整文档不注入基础样式（避免和作者自己的 CSS 打架），但页脚仍会追加到文档末尾。
+- 正文里的 JS 如果整体重写 `document.body.innerHTML`，会把页脚一起覆盖掉——想保留就改成 `insertAdjacentHTML('beforeend', …)` 之类的追加写法。
 
 ## 构建脚本的环境变量
 

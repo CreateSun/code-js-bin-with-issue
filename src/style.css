@@ -74,6 +74,13 @@ button { cursor: pointer; }
 
 .muted { color: var(--muted); }
 
+footer {
+  padding: 25px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
 /* 首页的 issue 列表：日期 + 标题两栏，窄屏改成两行 */
 ul.post-list { margin: 0; padding: 0; list-style: none; }
 ul.post-list li { display: flex; padding: 3px 0; }

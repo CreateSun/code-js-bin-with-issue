@@ -29,6 +29,7 @@ const publishLabel = (process.env.PUBLISH_LABEL ?? 'publish').trim().toLowerCase
 const pageTemplate = await readFile(path.join(srcDir, 'page.html'), 'utf8');
 const notFoundTemplate = await readFile(path.join(srcDir, '404.html'), 'utf8');
 const style = await readFile(path.join(srcDir, 'style.css'), 'utf8');
+const footer = await readFile(path.join(srcDir, 'footer.html'), 'utf8');
 
 /** 追加到片段末尾：出错的片段至少给个可见的报错，而不是白屏。 */
 const REPORT_BLOCK = `<style>
@@ -57,7 +58,10 @@ const issues = await fetchIssues();
 
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
-await writeFile(path.join(distDir, '404.html'), notFoundTemplate.replaceAll('__BASE__', basePath).replace('__STYLE__', () => style));
+await writeFile(
+  path.join(distDir, '404.html'),
+  notFoundTemplate.replaceAll('__BASE__', basePath).replace('__STYLE__', () => style).replace('__FOOTER__', () => footer),
+);
 
 const takenSlugs = new Set();
 const pages = [];
@@ -123,7 +127,7 @@ function buildPage(issue, template) {
 
   if (resolveMode(issue) === 'js') return fillTemplate(template, issue.title, `<script>${escapeScript(source)}</script>`);
   // 本身就是完整文档（带 doctype / <html>）时原样使用，否则套一层片段外壳
-  if (/^\s*(?:<!doctype\s|<html[\s>])/i.test(source)) return `${source}\n${REPORT_BLOCK}`;
+  if (/^\s*(?:<!doctype\s|<html[\s>])/i.test(source)) return withFooter(`${source}\n${REPORT_BLOCK}`);
   return fillTemplate(template, issue.title, source);
 }
 
@@ -132,7 +136,13 @@ function fillTemplate(template, title, content) {
   return template
     .replace('__STYLE__', () => style)
     .replace('__TITLE__', () => escapeHtml(title))
-    .replace('__CONTENT__', () => `${content}\n${REPORT_BLOCK}`);
+    .replace('__CONTENT__', () => `${content}\n${REPORT_BLOCK}`)
+    .replace('__FOOTER__', () => footer);
+}
+
+/** 完整文档不套外壳（也不注入基础样式，免得和作者自己的 CSS 打架），但页脚还是要补上。 */
+function withFooter(html) {
+  return `${html}\n${footer}`;
 }
 
 /** 正文为空时给个提示，而不是白屏。 */
@@ -150,6 +160,7 @@ __STYLE__
 </head>
 <body>
 <p>issue #${issue.number} 的正文是空的，<a href="${escapeHtml(issue.html_url)}" rel="noreferrer">去 GitHub 编辑</a></p>
+__FOOTER__
 </body>
 </html>`,
     issue.title,
@@ -224,6 +235,7 @@ ${style}
 <p class="muted">issue 标题即路径（<code>${escapeHtml(basePath)}{标题}/</code>），正文即页面内容。</p>
 <hr>
 ${pages.length ? `  <ul class="post-list">\n${items}\n  </ul>` : empty}
+${footer}
 </body>
 </html>
 `;
