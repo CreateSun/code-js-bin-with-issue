@@ -85,7 +85,7 @@ dist/                          构建产物（不入库）
 页脚放在 `src/footer.html`（现在是博客链接），构建时注入到每一页。两个已知边界：
 
 - 完整文档不注入基础样式（避免和作者自己的 CSS 打架），但页脚仍会追加到文档末尾。
-- 正文里的 JS 如果整体重写 `document.body.innerHTML`，会把页脚一起覆盖掉——想保留就改成 `insertAdjacentHTML('beforeend', …)` 之类的追加写法。
+- 正文里的 JS 如果在解析期执行（普通内联 `<script>`）并整体重写 `document.body.innerHTML`，页脚是解析器随后追加的节点，仍然会保留；但如果重写发生在更晚的时候（`load` 里、异步回调里），页脚会被一起清掉——那种写法改成 `insertAdjacentHTML('beforeend', …)` 之类的追加写法即可。
 
 ## 构建脚本的环境变量
 
