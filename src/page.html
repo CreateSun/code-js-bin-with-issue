@@ -85,7 +85,8 @@
     stageEl.hidden = false;
   }, { once: true });
 
-  fetch('./issue.json', { cache: 'no-store' })
+  // 带时间戳：Pages 对资源给了 max-age=600，不加的话改完 issue 刷新可能还是旧内容
+  fetch('./issue.json?t=' + Date.now(), { cache: 'no-store' })
     .then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();

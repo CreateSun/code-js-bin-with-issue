@@ -40,7 +40,7 @@
   var tail = decodeURIComponent(location.pathname.slice(base.length)).replace(/^\/+|\/+$/g, '');
   if (!tail) return;
 
-  fetch(base + 'index.json', { cache: 'no-store' })
+  fetch(base + 'index.json?t=' + Date.now(), { cache: 'no-store' })
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (data) {
       var hit = data && data.pages.filter(function (page) {
