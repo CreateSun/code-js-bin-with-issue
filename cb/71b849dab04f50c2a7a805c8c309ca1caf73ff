@@ -1,0 +1,21 @@
+scripts/build.mjs
+  s_9167e36f642b69::t_a62ff6a3b31a94 130
+README.md
+  s_9167e36f642b69::t_a2a752d08bd983 29-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.49-trip",
+  "base_commit_sha": "cb71b849dab04f50c2a7a805c8c309ca1caf73ff",
+  "prompts": {},
+  "sessions": {
+    "s_9167e36f642b69": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_j7jk9kk83vhn",
+        "model": "auto(free)"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
