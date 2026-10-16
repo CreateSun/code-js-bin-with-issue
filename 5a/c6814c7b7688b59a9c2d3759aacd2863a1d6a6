@@ -1,0 +1,19 @@
+scripts/build.mjs
+  s_5db18bf7b4bdd9::t_9877b571ebc956 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.50-trip",
+  "base_commit_sha": "5ac6814c7b7688b59a9c2d3759aacd2863a1d6a6",
+  "prompts": {},
+  "sessions": {
+    "s_5db18bf7b4bdd9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2940814d-bbe3-4235-b1e8-76587d10b6a4",
+        "model": "claude-opus-5.5"
+      },
+      "human_author": "yucui <yucui@trip.com>"
+    }
+  }
+}
