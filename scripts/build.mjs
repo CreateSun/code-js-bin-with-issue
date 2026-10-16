@@ -9,13 +9,15 @@
  * issue 标题决定访问路径，issue 正文就是页面内容本身（HTML 或 JS，见 resolveMode）。
  */
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = path.join(root, 'src');
 const distDir = path.join(root, 'dist');
+const publicDir = path.join(root, 'public');
 
 const apiBase = (process.env.GITHUB_API_URL || 'https://api.github.com').replace(/\/+$/, '');
 const token = process.env.GITHUB_TOKEN || '';
@@ -99,6 +101,12 @@ for (const issue of issues) {
 }
 
 await writeFile(path.join(distDir, 'index.html'), renderIndex(pages, basePath));
+
+// public/ 里的静态资源原样拷进 dist/：大块运行时/样式这类不放进 issue 正文的文件走这里。
+if (existsSync(publicDir)) {
+  await cp(publicDir, distDir, { recursive: true, force: true });
+  console.log(`拷贝 public/ → dist/`);
+}
 
 console.log(`\n完成：${pages.length} 个页面 → ${path.relative(process.cwd(), distDir)}/`);
 
